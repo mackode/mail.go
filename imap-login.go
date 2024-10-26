@@ -14,7 +14,7 @@ type conn struct {
 }
 
 func NewIMAP() *conn {
-  c = conn{
+  c := conn{
     HostPort: "imap.foo.com:993",
     User:     "me@foo.com",
     Pass:     "PASSWORD",
@@ -35,13 +35,13 @@ func (c *conn) Open() error {
   cli, err := imapclient.DialTLS(c.HostPort, nil)
   c.Cli = cli
   if err != nil {
-    return 0, err
+    return err
   }
 
   c.Log.Debug("Connect OK")
   c.Log.Debugw("Login", "user", c.User)
   if err := c.Cli.Login(c.User, c.Pass).Wait(); err != nil {
-    return 0, err
+    return err
   }
 
   c.Log.Debug("Login OK")

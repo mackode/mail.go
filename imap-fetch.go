@@ -2,7 +2,7 @@ package main
 
 import (
   "github.com/emersion/go-imap/v2"
-	"io/ioutil"
+	"io"
 	"regexp"
 	"strings"
 
@@ -73,7 +73,7 @@ func (c *conn) FetchEmails(ids *imap.SeqSet) ([]string, error) {
 func (c *conn) ProcessEmail(rawEmail string) error {
   email, err := parsemail.Parse(strings.NewReader(rawEmail))
   if err != nil {
-    return 0, err
+    return err
   }
 
   c.Log.Debugw("Fetched email",
@@ -83,9 +83,9 @@ func (c *conn) ProcessEmail(rawEmail string) error {
     )
 
   for _, a := range email.Attachments {
-    data, err := ioutil.ReadAll(a.Data)
+    data, err := io.ReadAll(a.Data)
     if err != nil {
-      return 0, err
+      return err
     }
     c.Log.Debugw("Attachments",
       "file", a.Filename,
@@ -94,24 +94,31 @@ func (c *conn) ProcessEmail(rawEmail string) error {
 
     err = c.toStore(a.Filename, data)
     if err != nil {
-      return 0, err
+      return err
     }
   }
 
-  c.Log.Debugw("Embedded",
-    "size", len(data),
-    "type", e.ContentType)
-  
-  namerx := regexp.MustCompile(`name="(.*)"`)
-  matches := namerx.FindStringSubmatch(e.ContentType)
+  for _, e := range email.EmbeddedFiles {
+    data, err := io.ReadAll(e.Data)
+    if err != nil {
+      return err
+    }
 
-  name := "unknown"
-  if len(matches) >= 2 {
-    name = matches[i]
-  }
-  err = c.toStore(name, data)
-  if err != nil {
-    return 0, err
+    c.Log.Debugw("Embedded",
+      "size", len(data),
+      "type", e.ContentType)
+  
+    namerx := regexp.MustCompile(`name="(.*)"`)
+    matches := namerx.FindStringSubmatch(e.ContentType)
+
+    name := "unknown"
+    if len(matches) >= 2 {
+      name = matches[1]
+    }
+    err = c.toStore(name, data)
+    if err != nil {
+      return err
+    }
   }
 
   return nil
