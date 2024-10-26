@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github,com/emersion/go-imap/v2"
+  "github.com/emersion/go-imap/v2"
 	"io/ioutil"
 	"regexp"
 	"strings"
