@@ -9,8 +9,8 @@ import (
 	"github.com/DusanKasan/parsemail"
 )
 
-func (c *conn) UnreadEmails() (*imap.SeqSet, error) {
-  ids := new(imap.SeqSet)
+func (c *conn) UnreadEmails() (*imap.NumSet, error) {
+  ids := new(imap.NumSet)
 
   // read/write!
   mbox, err := c.Cli.Select("INBOX", &imap.SelectOptions{ReadOnly: false}).Wait()
@@ -34,13 +34,13 @@ func (c *conn) UnreadEmails() (*imap.SeqSet, error) {
     return ids, err
   }
 
-  c.Log.Debugw("Unread", "msgs", data.AllNums())
+  c.Log.Debugw("Unread", "msgs", data.AllUIDs())
   return &data.All, nil
 }
 
-func (c *conn) FetchEmails(ids *imap.SeqSet) ([]string, error) {
+func (c *conn) FetchEmails(ids *imap.NumSet) ([]string, error) {
   msgs := []string{}
-  if len(*ids) == 0 {
+  if ids == nil {
     c.Log.Debug("No emails")
     return msgs, nil
   }
@@ -51,8 +51,8 @@ func (c *conn) FetchEmails(ids *imap.SeqSet) ([]string, error) {
     BodySection:  []*imap.FetchItemBodySection{{}},
   }
 
-  c.Log.Debugw("Fetching", "uids", ids.String())
-  messages, err := c.Cli.UIDFetch(*ids, fetchOptions).Collect()
+  c.Log.Debugw("Fetching", "uids", *ids)
+  messages, err := c.Cli.Fetch(*ids, fetchOptions).Collect()
   if err != nil {
     c.Log.Error("Fetch failed")
     return msgs, err
